@@ -200,7 +200,7 @@
   <div class="diagram-wrap">
     <pre class="mermaid">
 %%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#2a2a2a', 'primaryTextColor': '#e8e8e8', 'lineColor': '#555555', 'edgeLabelBackground': '#1a1a1a'}}}%%
-flowchart TD
+flowchart LR
     A([Source edit]) --> B{Item content changed?}
     B -->|No| C([Reuse cached CGU])
     B -->|Yes| D[compute_codegen_unit_name]
