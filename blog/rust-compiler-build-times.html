@@ -1,0 +1,359 @@
+<title>I patched the Rust compiler because the build times were annoying me</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a1a1a;
+    color: #e8e8e8;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 18px;
+    line-height: 1.75;
+    padding-inline: 20px;
+  }
+
+  .wrap {
+    max-width: 660px;
+    margin-inline: auto;
+    padding-block: 48px 96px;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 7vw, 3rem);
+    font-weight: 900;
+    line-height: 1.1;
+    color: #cc2200;
+    margin-bottom: 20px;
+    text-wrap: balance;
+  }
+
+  .meta {
+    font-size: 14px;
+    color: #888888;
+    margin-bottom: 36px;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 4.5vw, 2rem);
+    font-weight: 900;
+    color: #cc2200;
+    margin-top: 52px;
+    margin-bottom: 14px;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  p { margin-bottom: 20px; }
+
+  a { color: #aaaaaa; text-decoration: underline; }
+  a:hover { color: #cc2200; }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8em;
+    background: #2a2a2a;
+    padding: 2px 5px;
+    border-radius: 3px;
+    color: #cccccc;
+  }
+
+  pre {
+    background: #2a2a2a;
+    border-left: 3px solid #cc2200;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 4px 0 24px;
+    color: #cccccc;
+  }
+
+  pre code { background: none; padding: 0; }
+
+  .diagram-wrap {
+    background: #222222;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 24px 16px 16px;
+    margin: 24px 0 32px;
+    overflow-x: auto;
+  }
+
+  .diagram-wrap .mermaid { display: flex; justify-content: center; }
+
+  .diagram-caption {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    margin-top: 12px;
+    font-style: italic;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0 28px;
+    font-size: 16px;
+  }
+
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid #444;
+    color: #aaaaaa;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  td { padding: 8px 12px; border-bottom: 1px solid #2e2e2e; }
+  td.mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #aaaaaa; }
+  td.bad  { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #cc2200; }
+
+  hr {
+    border: none;
+    border-top: 1px solid #333;
+    margin: 52px 0 40px;
+  }
+
+  ol.refs {
+    padding-left: 22px;
+    color: #888;
+    font-size: 16px;
+  }
+
+  ol.refs li { margin-bottom: 10px; line-height: 1.5; }
+  ol.refs a { color: #888; }
+  ol.refs a:hover { color: #cc2200; }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.4rem; }
+    body { font-size: 17px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <h1>I patched the Rust compiler because the build times were annoying me</h1>
+  <p class="meta">Ayush Sreejith · September 2026</p>
+
+  <p>
+    So I was working on a project, incremental builds were slow, and I got curious
+    enough to actually look into why. Not "look it up" curious — open the compiler
+    source, trace the actual problem, curious. This is what I found.
+  </p>
+
+  <p>
+    People have written about Rust compile times before. Nethercote has a whole series on
+    speeding up the compiler from the inside <a href="https://nnethercote.github.io/2026/07/31/how-to-speed-up-the-rust-compiler-in-july-2026.html">[6]</a>. Lattimore wrote about deferring codegen
+    to link time to avoid duplicate monomorphizations across crates <a href="https://davidlattimore.github.io/posts/2024/06/05/speeding-up-rustc-by-being-lazy.html">[7]</a>. PingCAP documented
+    how TiKV's compilation units got huge <a href="https://www.pingcap.com/blog/rust-huge-compilation-units/">[5]</a>. This is a different angle — not the from-scratch
+    build, not cross-crate duplication, but why a single edit in a generic-heavy crate
+    forces so much recompilation that it shouldn't.
+  </p>
+
+  <h2>How incremental compilation works</h2>
+
+  <p>
+    Rust splits a crate's code into codegen units (CGUs) — independent chunks compiled
+    and cached separately. Edit one function, only its chunk gets recompiled. <a href="https://rust-lang.github.io/rfcs/1298-incremental-compilation.html">RFC 1298</a> <a href="https://rust-lang.github.io/rfcs/1298-incremental-compilation.html">[1]</a>
+    describes the goal: "when a function in one compartment changes, functions from other
+    compartments are unaffected and their object code can be reused."
+  </p>
+
+  <p>
+    The module doing this is <a href="https://doc.rust-lang.org/stable/nightly-rustc/rustc_monomorphize/partitioning/index.html"><code>rustc_monomorphize::partitioning</code></a> <a href="https://doc.rust-lang.org/stable/nightly-rustc/rustc_monomorphize/partitioning/index.html">[2]</a>.
+    For most code it works fine. For generics it doesn't.
+  </p>
+
+  <h2>The generic problem</h2>
+
+  <p>
+    Every monomorphization of a generic function — every concrete type it gets called
+    with — gets put into one shared bucket. The key used in
+    <code>compute_codegen_unit_name</code> is <code>(module_def_id, volatile)</code>.
+    The type arguments aren't part of it.
+  </p>
+
+  <p>
+    So if a crate has 200 instantiations of <code>ChunkedArray&lt;T&gt;</code> and you
+    touch one method body, all 200 get re-emitted. Including ones that produce identical
+    output and share no code with your change. One volatile bucket per module,
+    everything pooled in, one edit takes the whole thing down.
+  </p>
+
+  <p>
+    <a href="https://github.com/rust-lang/rust/pull/70156">PRs #70156</a> <a href="https://github.com/rust-lang/rust/pull/70156">[3]</a> and <a href="https://github.com/rust-lang/rust/pull/112946">#112946</a> <a href="https://github.com/rust-lang/rust/pull/112946">[4]</a> both worked on this layer of the compiler — one made
+    <code>-C codegen-units</code> actually respected in incremental mode, the other
+    improved CGU naming — but neither addressed invalidation scope for generics specifically.
+    The bucket structure stayed the same.
+  </p>
+
+  <div class="diagram-wrap">
+    <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#2a2a2a', 'primaryTextColor': '#e8e8e8', 'lineColor': '#555555', 'edgeLabelBackground': '#1a1a1a'}}}%%
+flowchart TD
+    A([Source edit]) --> B{Item content changed?}
+    B -->|No| C([Reuse cached CGU])
+    B -->|Yes| D[compute_codegen_unit_name]
+    D --> E{Volatile generic?}
+    E -->|No| F([Standard module CGU])
+    E -->|Status quo| G["Key: module_def_id + volatile\ntype args ignored"]
+    G --> H[All N instantiations\nin one bucket]
+    H --> I([Re-emit all N])
+    E -->|This patch| J["Key: hash(symbol) % shard_count"]
+    J --> K[Instantiation → 1 of S shards]
+    K --> L([Re-emit ~N/S])
+
+    style G fill:#7a1500,color:#ffcccc
+    style H fill:#7a1500,color:#ffcccc
+    style I fill:#7a1500,color:#ffcccc
+    style J fill:#383838,color:#e8e8e8
+    style K fill:#383838,color:#e8e8e8
+    style L fill:#383838,color:#e8e8e8
+    </pre>
+    <p class="diagram-caption">Status quo (red): one edit, all N re-emitted. This patch (grey): one edit, ~N/shard_count re-emitted.</p>
+  </div>
+
+  <h2>What I tried first</h2>
+
+  <p>
+    The first idea was to give each instantiation its own CGU. Maximum cache granularity —
+    edit one thing, only that thing recompiles. Makes sense on paper.
+  </p>
+
+  <p>
+    Incremental builds got 20.95× slower.
+  </p>
+
+  <p>
+    The reason: <code>merge_codegen_units</code>, the pass that recombines over-fragmented
+    CGUs back to a sensible count, is deliberately skipped in incremental mode. Each CGU
+    needs to stay independent to be independently cacheable. Skip the merge pass and
+    one-CGU-per-instantiation means hundreds of tiny object files with nothing combining
+    them, and linker overhead takes over completely.
+  </p>
+
+  <h2>Hash-sharding</h2>
+
+  <p>
+    The fix that actually worked: instead of splitting into one bucket per instantiation,
+    shard the volatile bucket into a bounded number of sub-buckets. Each instantiation
+    hashes into a slot:
+  </p>
+
+  <pre><code>shard = hash(instantiation_symbol) % shard_count
+shard_count = codegen_units.unwrap_or(16)
+              .max(available_parallelism())
+              .clamp(4, 128)</code></pre>
+
+  <p>
+    One edit invalidates one shard — roughly N/shard_count instantiations instead of all N.
+    The CGU count stays bounded so link cost stays manageable. The shard count is floored
+    at the host's thread count so you don't under-utilize cores when someone sets an
+    explicitly low <code>-C codegen-units</code>.
+  </p>
+
+  <p>
+    This is the <code>-Z fine-grained-generic-cgus</code> flag. Patch lives
+    <a href="https://github.com/Trigodil/Rust">here</a>.
+  </p>
+
+  <h2>I was testing the wrong thing</h2>
+
+  <p>
+    My first round of benchmarks used the standard touch method — append a comment to the
+    file, rebuild, time it. Seems reasonable. Doesn't work.
+  </p>
+
+  <p>
+    rustc fingerprints items by content, not file bytes. A comment changes nothing
+    semantically, so the compiler correctly figures out nothing changed and reuses every
+    cached CGU regardless. I verified this with
+    <code>-C save-temps -Z human-readable-cgu-names</code>: zero CGUs re-emitted in
+    any configuration. The "15% overhead" I'd been reporting was pure noise —
+    nothing was being invalidated in the first place.
+  </p>
+
+  <p>
+    The fix was a body edit: insert an actual statement into a method body so the MIR
+    fingerprint changes and real invalidation happens. All the numbers below use that.
+  </p>
+
+  <h2>Results</h2>
+
+  <p>
+    Benchmarked on polars-core — enough <code>ChunkedArray&lt;T&gt;</code> instantiations
+    that the volatile bucket is meaningfully expensive to invalidate. Same stage1 compiler
+    binary held constant across configs in each session.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Configuration</th><th>Cold</th><th>Incremental</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Baseline</td><td class="mono">1.000×</td><td class="mono">1.000×</td></tr>
+      <tr><td>Unbounded (1 CGU/instantiation)</td><td class="bad">~3.06×</td><td class="bad">~20.95×</td></tr>
+      <tr><td>Hash-sharded patch</td><td class="mono">0.988×</td><td class="mono">0.961×</td></tr>
+      <tr><td>+ <code>-Z threads=4</code></td><td class="mono">0.657×</td><td class="mono">0.852×</td></tr>
+      <tr><td>+ <code>-C codegen-units=16</code></td><td class="mono">—</td><td class="mono">0.542×</td></tr>
+      <tr><td>+ cranelift backend</td><td class="mono">—</td><td class="mono"><strong>0.521×</strong></td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    The thing that surprised me most: just changing <code>codegen-units</code> from 256
+    (polars-core's dev profile default) to 16 beat the previous best result on its own,
+    no patched compiler needed. Nobody had tried it because there was no obvious reason to —
+    until I was investigating whether LLVM's backend parallelism was hiding cranelift's
+    per-function speed advantage. It was. Turned out the <code>codegen-units</code> value
+    nobody had questioned was doing more damage than the bucketing problem I'd been
+    investigating. Funny how that goes.
+  </p>
+
+  <p>
+    I also tried topology-aware clustering — grouping instantiations by call-graph family
+    instead of hashing, so related code shares shards. Built it into a patched stage1 rustc
+    and benchmarked it. 1.375× slower than plain hashing. The test function had no
+    non-generic callees to cluster by, so it always fell through to the hash path anyway
+    and just paid extra overhead getting there. Good idea, wrong crate to test it on.
+  </p>
+
+  <h2>How to try it</h2>
+
+  <pre><code># Apply the patch to a rust-lang/rust checkout, build stage 1
+python3 x.py build --stage 1 library/std compiler/rustc library/proc_macro
+
+# Then use it against any project
+RUSTC=/path/to/stage1/bin/rustc RUSTC_BOOTSTRAP=1 \
+  RUSTFLAGS="-Z fine-grained-generic-cgus" cargo build</code></pre>
+
+  <p>
+    Full patch, synthetic benchmark workspace, and every result writeup with raw commands:
+    <a href="https://github.com/Trigodil/Rust">github.com/Trigodil/Rust</a>.
+  </p>
+
+  <p style="color:#e8e8e8; font-size:16px;">
+    Thanks to <a href="https://claude.ai">Claude</a> for helping move the research faster —
+    tracing through compiler internals, cross-referencing prior work, and running down dead
+    ends would've taken a lot longer without it.
+  </p>
+
+  <hr>
+
+  <p style="color:#666; font-size:15px; margin-bottom:20px;">References</p>
+  <ol class="refs">
+    <li><a href="https://rust-lang.github.io/rfcs/1298-incremental-compilation.html">RFC 1298: Incremental compilation</a></li>
+    <li><a href="https://doc.rust-lang.org/stable/nightly-rustc/rustc_monomorphize/partitioning/index.html">rustc_monomorphize::partitioning</a></li>
+    <li><a href="https://github.com/rust-lang/rust/pull/70156">rust-lang/rust #70156</a> — respecting <code>-C codegen-units</code> in incremental mode</li>
+    <li><a href="https://github.com/rust-lang/rust/pull/112946">rust-lang/rust #112946</a> — CGU naming and ordering</li>
+    <li><a href="https://www.pingcap.com/blog/rust-huge-compilation-units/">Rust's Huge Compilation Units</a> — PingCAP on TiKV crate-level costs</li>
+    <li><a href="https://nnethercote.github.io/2026/07/31/how-to-speed-up-the-rust-compiler-in-july-2026.html">How to speed up the Rust compiler</a> — Nicholas Nethercote, July 2026</li>
+    <li><a href="https://davidlattimore.github.io/posts/2024/06/05/speeding-up-rustc-by-being-lazy.html">Speeding up rustc by being lazy</a> — David Lattimore on deferred codegen and monomorphization duplication</li>
+    <li><a href="https://internals.rust-lang.org/t/explicit-monomorphization-for-compilation-time-reduction/15907">Explicit monomorphization for compilation time reduction</a> — Rust Internals discussion</li>
+  </ol>
+
+</div>
