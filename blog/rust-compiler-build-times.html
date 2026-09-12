@@ -313,10 +313,10 @@ shard_count = codegen_units.unwrap_or(16)
   <p>
     The thing that surprised me most: just changing <code>codegen-units</code> from 256
     (polars-core's dev profile default) to 16 beat the previous best result on its own,
-    no patched compiler needed. Nobody had tried it because there was no obvious reason to —
+    no patched compiler needed. I hadn't tried it because I had no obvious reason to —
     until I was investigating whether LLVM's backend parallelism was hiding cranelift's
     per-function speed advantage. It was. Turned out the <code>codegen-units</code> value
-    nobody had questioned was doing more damage than the bucketing problem I'd been
+    I hadn't questioned was doing more damage than the bucketing problem I'd been
     investigating. Funny how that goes.
   </p>
 
