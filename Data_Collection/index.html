@@ -1,0 +1,489 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poisoning the Well</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@400;500&display=swap">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f9f9f7;
+    --text: #4c4e67;
+    --heading: #22183c;
+    --muted: #7c7e96;
+    --link: #22183c;
+    --border: #d4d0c8;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 18px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 24px 100px;
+  }
+
+  /* Top meta row */
+  .meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+  }
+
+  .reading-time {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .reading-time span {
+    margin: 0 6px;
+    opacity: 0.5;
+  }
+
+  .share-icons {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .share-icons a {
+    color: var(--muted);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+  }
+
+  .share-icons a:hover { color: var(--heading); }
+
+  /* Title */
+  .post-title {
+    font-family: 'Playfair Display', ui-serif, Georgia, serif;
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 500;
+    color: var(--heading);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-bottom: 36px;
+  }
+
+  /* Preface */
+  .preface {
+    font-size: 16px;
+    color: var(--heading);
+    margin-bottom: 40px;
+    line-height: 1.65;
+  }
+
+  /* Section headings */
+  h2 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 52px 0 16px;
+  }
+
+  p { margin-bottom: 18px; }
+
+  a {
+    color: var(--link);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(34,24,60,0.35);
+  }
+  a:hover { text-decoration-color: var(--link); }
+
+  ul, ol {
+    margin: 8px 0 18px 20px;
+  }
+  li { margin-bottom: 6px; }
+
+  /* Equations */
+  .eq {
+    font-size: 15px;
+    text-align: center;
+    margin: 24px 0;
+    color: var(--heading);
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* Tables */
+  .tbl-wrap { overflow-x: auto; margin: 16px 0 24px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    border: 1px solid #000;
+  }
+  th {
+    border: 1px solid #000;
+    text-align: left;
+    padding: 7px 14px;
+    font-weight: 600;
+    color: var(--heading);
+    font-size: 13px;
+  }
+  td {
+    border: 1px solid #000;
+    padding: 7px 14px;
+    color: var(--heading);
+  }
+
+  /* Chart */
+  .chart-wrap {
+    margin: 32px 0 40px;
+    background: #fff;
+    border: 1px solid #000;
+    padding: 24px 20px 16px;
+  }
+  .chart-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--heading);
+    margin-bottom: 4px;
+  }
+  .chart-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--heading);
+  }
+  .leg-item { display: flex; align-items: center; gap: 6px; }
+  .leg-swatch { width: 12px; height: 12px; display: inline-block; flex-shrink: 0; }
+  .leg-dash { width: 20px; border-top: 2px dashed #dc2626; display: inline-block; }
+  .leg-red { color: #dc2626; }
+  .leg-blue { color: #2563eb; }
+
+  /* References */
+  .refs {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--heading);
+  }
+  .refs p { margin-bottom: 14px; }
+  .refs a { color: var(--heading); word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="meta">
+    <div class="reading-time">24/09/26 <span>·</span> Reading Time <span>·</span> 9 Min</div>
+    <div class="share-icons">
+      <a href="https://twitter.com/intent/tweet?url=https://trigodil.github.io/Data_Collection/" target="_blank" title="Share on Twitter">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      </a>
+      <a href="https://news.ycombinator.com/submitlink?u=https://trigodil.github.io/Data_Collection/&t=Poisoning+the+Well" target="_blank" title="Share on Hacker News">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M0 0h24v24H0V0zm12.2 11.46L8.67 4H6.5l5.13 9.33V20h1.17v-6.67L17.5 4h-2.17z"/></svg>
+      </a>
+      <a href="https://reddit.com/submit?url=https://trigodil.github.io/Data_Collection/&title=Poisoning+the+Well" target="_blank" title="Share on Reddit">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <h1 class="post-title">Poisoning the Well</h1>
+
+  <div class="preface">
+    I have a really funny idea, basically the idea and methodology of the study below is a rough estimate of how noise would scale, margins of noise etc based on sources, this post contains a bit of mathematics and it is basically somewhat of a short study on this topic, so prepare for a bit of a word salad
+  </div>
+
+  <h2>Introduction</h2>
+  <p>This is basically a writeup on a structural vulnerability in large-scale behavioral data collection - the kind that doesn't require breaking any systems, bypassing any auth, or doing anything that looks like an attack. The vuln is simpler than that: the signal can be poisoned, and once it is, the whole system degrades in ways that are hard to reverse.</p>
+  <p>Large-scale data collection - the kind Meta runs - works because it assumes the behavioral data it's ingesting reflects human preferences. That assumption is load-bearing. Pull it out and the targeting precision collapses, the model weights get contaminated, and you end up with a surveillance system that's increasingly blind to what actual people actually want (This is the goal more or less with this idea).</p>
+  <p>The interesting part is that this isn't theoretical. It's already partially happening at baseline - before any coordinated effort. The math below is just tracing how far along the curve we already are, and how little it takes to push it further.</p>
+
+  <p>Meta's (or any collection company in this particular case) data collection methods rests on a single assumption: that its behavioral data reflects actual human preferences. The entire value of behavioral surveillance rests on the precision of that signal.</p>
+  <p>This post argues that precision is mathematically fragile, already partially collapsed at baseline, and sits within striking distance of total failure.</p>
+
+  <h2>1 The Baseline</h2>
+  <p>Meta's own SEC filings disclosed that false accounts represented approximately <a href="https://sec.gov/Archives/edgar/data/1326801/000132680123000093/meta-20230630.htm" target="_blank">4-5% of worldwide MAU as of Q4 2022</a>, with duplicate accounts adding another 11%. [1]</p>
+  <p>Meta <a href="https://ppc.land/facebook-banned-3-5-billion-fake-accounts-in-2025-vab-analysis-finds/" target="_blank">stopped disclosing these figures</a> in SEC filings after FY2023. [2]</p>
+  <p>Despite removing <a href="https://ppc.land/facebook-banned-3-5-billion-fake-accounts-in-2025-vab-analysis-finds/" target="_blank">3.5 billion fake accounts in 2025 alone and 38 billion over eight years</a> - the false account percentage remained stable. [3]</p>
+  <p>The creation rate matches the removal rate. The system is at steady state saturation.</p>
+
+  <h2>2 The Signal to Noise Model</h2>
+  <p>Define these variables:</p>
+  <ul>
+    <li>N = total accounts</li>
+    <li>S = synthetic accounts</li>
+    <li>p = S/N (synthetic ratio)</li>
+  </ul>
+  <p>Signal-to-noise ratio:</p>
+  <p class="eq">SNR = (1 - p) / p</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>p (synthetic ratio)</th><th>SNR</th><th>Interpretation</th></tr>
+    <tr><td>0.05</td><td>19.0</td><td>19 real per 1 synthetic</td></tr>
+    <tr><td>0.10</td><td>9.0</td><td>System stressed</td></tr>
+    <tr><td>0.15</td><td>5.67</td><td>Noticeable degradation</td></tr>
+    <tr><td>0.25</td><td>3.00</td><td>Severe degradation</td></tr>
+    <tr><td>0.50</td><td>1.00</td><td>Noise equals signal</td></tr>
+  </table></div>
+  <p>SNR alone understates the damage. Targeting accuracy does not degrade linearly.</p>
+
+  <h2>3 The Targeting Accuracy Degradation Model</h2>
+  <p>Advertiser confidence collapses nonlinearly, so it behaves more or less like a phase transition. Modeled as an inverted logistic function:</p>
+  <p class="eq">s(p) = 1 / (1 + e^(20 x (p - 0.15)))</p>
+  <p>Where:</p>
+  <ul>
+    <li>p_c = 0.15 is the critical threshold (inflection point of collapse)</li>
+    <li>k = 20 (note that this is a modeling choice) captures steepness of the transition, consistent with <a href="https://arxiv.org/pdf/2511.05845" target="_blank">ML model robustness literature on label noise sensitivity</a> [5]</li>
+  </ul>
+  <div class="tbl-wrap"><table>
+    <tr><th>p</th><th>s(p)</th><th>Interpretation</th></tr>
+    <tr><td>0.05</td><td>0.881</td><td>Baseline - system functional</td></tr>
+    <tr><td>0.10</td><td>0.731</td><td>Data signal visibly degrading</td></tr>
+    <tr><td>0.15</td><td>0.500</td><td>Critical threshold - collapse begins</td></tr>
+    <tr><td>0.20</td><td>0.269</td><td>Severe - approaching random</td></tr>
+    <tr><td>0.25</td><td>0.119</td><td>Effectively random</td></tr>
+    <tr><td>0.30</td><td>0.047</td><td>Noise dominates completely</td></tr>
+  </table></div>
+
+  <h2>4 Detection Will Not Save It</h2>
+  <p>Meta claims <a href="https://sec.gov/Archives/edgar/data/1326801/000132680123000093/meta-20230630.htm" target="_blank">99.7% proactive detection</a> of fake accounts. This figure applies to low-quality bots with high behavioral distinguishability (a).</p>
+  <p>For coordinated high quality synthetic accounts - residential IP, device fingerprint, human-plausible behavioral patterns etc, a is low.</p>
+  <p class="eq">P_d(a, p) = 0.997 x a x (1 - p / p_max)</p>
+  <p>Where p_max = 0.30 is the saturation point where detection breaks down from resource exhaustion.</p>
+  <p>At a = 0.10 (note that this is high quality accounts):</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>p</th><th>P_d</th><th>Accounts surviving detection</th></tr>
+    <tr><td>0.05</td><td>0.083</td><td>91.7%</td></tr>
+    <tr><td>0.15</td><td>0.050</td><td>95.0%</td></tr>
+    <tr><td>0.30</td><td>0.000</td><td>100% - saturates detection</td></tr>
+  </table></div>
+  <p>Effective synthetic ratio after detection:</p>
+  <p class="eq">p_eff = p x (1 - P_d)</p>
+  <p>At p_injected = 0.15:</p>
+  <p class="eq">p_eff = 0.15 x (1 - 0.050) = 0.1425
+s(0.1425) = 0.537</p>
+  <p>Detection saves Meta in particular approximately 3.7 percentage points of accuracy at the critical threshold. It does not prevent collapse.</p>
+
+  <h2>5 The Irreversibility Problem</h2>
+  <p>The above models current targeting accuracy, the particular problem is that poisoned training data does not leave when accounts are removed.</p>
+  <p>Model contamination follows a sort of a leaky integrator - the same mathematics as viral spread in epidemiology:</p>
+  <p class="eq">dM/dt = y x p x (1 - M) - L x M</p>
+  <p>At steady state:</p>
+  <p class="eq">M*(p) = R_c x p / (1 + R_c x p)</p>
+  <p>Where R_c = y/L is the contamination reproduction ratio.</p>
+  <p>Estimated from <a href="https://ppc.land/metas-ad-business-hits-record-58b-as-ai-drives-conversion-gains/" target="_blank">Meta's continuous retraining architecture</a>: [4]</p>
+  <ul>
+    <li>y = 0.80 (contamination absorption rate, high due to retraining)</li>
+    <li>L = 0.05 (natural decontamination rate, low - cause of old weights)</li>
+    <li>R_c = 16 &nbsp;&nbsp; M*(p) = 16p / (1 + 16p)</li>
+  </ul>
+  <div class="tbl-wrap"><table>
+    <tr><th>p</th><th>M*(p)</th><th>Model weights contaminated</th></tr>
+    <tr><td>0.05</td><td>0.444</td><td>44.4% - at current baseline</td></tr>
+    <tr><td>0.10</td><td>0.615</td><td>61.5%</td></tr>
+    <tr><td>0.15</td><td>0.706</td><td>70.6%</td></tr>
+    <tr><td>0.20</td><td>0.762</td><td>76.2%</td></tr>
+    <tr><td>0.30</td><td>0.828</td><td>82.8%</td></tr>
+  </table></div>
+  <p>At <a href="https://sec.gov/Archives/edgar/data/1326801/000162828026003942/meta-20251231.htm" target="_blank">Meta's current baseline</a> of p = 0.05, 44% of model weights are already contaminated by synthetic behavioral patterns - and this is before any coordinated injection effort. [4]</p>
+
+  <h2>6 Combined Model</h2>
+  <p class="eq">s_total(p) = s(p_eff) x (1 - M*(p))</p>
+  <p>The combined degradation effect on targeting precision:</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>p</th><th>s_total</th><th>Interpretation</th></tr>
+    <tr><td>0.05</td><td>0.497</td><td>Baseline - already half-compromised</td></tr>
+    <tr><td>0.10</td><td>0.297</td><td>Severe degradation of targeting signal</td></tr>
+    <tr><td>0.15</td><td>0.158</td><td>Precision effectively collapsed</td></tr>
+    <tr><td>0.20</td><td>0.066</td><td>Targeting approaching random</td></tr>
+    <tr><td>0.25</td><td>0.021</td><td>Signal indistinguishable from noise</td></tr>
+    <tr><td>0.30</td><td>0.008</td><td>Complete behavioral data failure</td></tr>
+  </table></div>
+
+  <div class="chart-wrap">
+    <div class="chart-title">TARGETING PRECISION DEGRADATION</div>
+    <div class="chart-sub">Combined model s_total(p) vs synthetic account ratio - hover for details</div>
+    <canvas id="degradationChart"></canvas>
+    <div class="chart-legend">
+      <span class="leg-item"><span class="leg-swatch" style="background:#22183c"></span>Combined model s_total(p)</span>
+      <span class="leg-item"><span class="leg-swatch" style="background:rgba(34,24,60,0.2);border:1px solid rgba(34,24,60,0.4)"></span>Signal-only s(p)</span>
+      <span class="leg-item leg-red"><span class="leg-dash"></span>Critical thresholds</span>
+      <span class="leg-item leg-blue"><span class="leg-dash" style="border-color:#2563eb"></span>Current baseline</span>
+    </div>
+  </div>
+
+  <h2>7 Error Margin</h2>
+  <p>All parameters carry a ±11% uncertainty range. The table below shows s_total at baseline (p = 0.05) and critical threshold (p = 0.15) across best and worst case scenarios for Meta.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Scenario</th><th>p</th><th>s_total</th></tr>
+    <tr><td>Best case (Meta)</td><td>0.05</td><td>0.547</td></tr>
+    <tr><td>Base case</td><td>0.05</td><td>0.497</td></tr>
+    <tr><td>Worst case</td><td>0.05</td><td>0.439</td></tr>
+    <tr><td>Best case (Meta)</td><td>0.15</td><td>0.198</td></tr>
+    <tr><td>Base case</td><td>0.15</td><td>0.158</td></tr>
+    <tr><td>Worst case</td><td>0.15</td><td>0.121</td></tr>
+  </table></div>
+  <p>Under no reasonable parameter combination does Meta's targeting exceed 55% of theoretical maximum at current synthetic account levels.</p>
+  <p>The error bars here do not save Meta from this.</p>
+
+  <h2>8 Finding</h2>
+  <p>At <a href="https://sec.gov/Archives/edgar/data/1326801/000162680124000012/meta-20231231.htm" target="_blank">Meta's current disclosed baseline</a> of p = 0.05, s_total = 0.497. [1]</p>
+  <p>Meta's behavioral targeting is already operating at approximately 50% of theoretical maximum accuracy, which is funny. A surveillance system that is already half blind at baseline.</p>
+  <p>Distance from current state to critical threshold:</p>
+  <p class="eq">delta_p = 0.15 - 0.05 = 0.10</p>
+  <p>Accounts needed to cross it:</p>
+  <p class="eq">S = 0.10 x 3.58B / 0.90 = 398 million accounts</p>
+  <p>Once the threshold is crossed, recovery requires approximately 12 months of clean data minimum - M decays as e^(-L x t) with L = 0.05 per training cycle and targeting precision does not recover on the same timescale as the mathematics.</p>
+
+  <h2>9 This is happening at scale already</h2>
+  <p><a href="https://ppc.land/facebook-banned-3-5-billion-fake-accounts-in-2025-vab-analysis-finds/" target="_blank">Meta's fake account removal rate</a> already implies the injection threshold is being approached organically - just without the explicit goal of data quality degradation. [3]</p>
+  <p>The idea here is reframing the question: what happens when coordinated synthetic injection targets advertising data quality specifically, as a privacy protection mechanism, rather than for influence operations or spam?</p>
+  <p>The mathematics here suggests that behavioral surveillance stops being technically viable as a privacy invasion mechanism.</p>
+
+  <h2>Summary</h2>
+  <p>Basically the idea that I am trying to convey is that, when bot/fake accounts increases, it poisons the datasets companies use to sell data to advertisers, hence, increasing user privacy by noise - it is very hard to handle datasets that are filled with "false" data and sell them, this creates a dilemma, deleting all the data collected after a specific date/instance, actual user data gets deleted as well, creating a deadlock for these companies.</p>
+
+  <div class="refs">
+    <p>[1] Meta Platforms 10-Q FY2023, False and duplicate account estimates.<br>
+    <a href="https://sec.gov/Archives/edgar/data/1326801/000132680123000093/meta-20230630.htm" target="_blank">https://sec.gov/Archives/edgar/data/1326801/000132680123000093/meta-20230630.htm</a></p>
+
+    <p>[2] VAB "Friend or Frenemy?" Report, April 2026, Meta disclosure gap.<br>
+    <a href="https://ppc.land/facebook-banned-3-5-billion-fake-accounts-in-2025-vab-analysis-finds/" target="_blank">https://ppc.land/facebook-banned-3-5-billion-fake-accounts-in-2025-vab-analysis-finds/</a></p>
+
+    <p>[3] Meta Transparency Center, Community Standards Enforcement - Fake Accounts, Facebook.<br>
+    <a href="https://transparency.meta.com/reports/community-standards-enforcement/fake-accounts/facebook" target="_blank">https://transparency.meta.com/reports/community-standards-enforcement/fake-accounts/facebook</a></p>
+
+    <p>[4] Meta Platforms 10-K FY2025, Ad revenue, DAP, GEM model architecture.<br>
+    <a href="https://sec.gov/Archives/edgar/data/1326801/000162828026003942/meta-20251231.htm" target="_blank">https://sec.gov/Archives/edgar/data/1326801/000162828026003942/meta-20251231.htm</a></p>
+
+    <p>[5] Meta Q4 2025 Earnings, Sequence learning architecture disclosure.<br>
+    <a href="https://ppc.land/metas-ad-business-hits-record-58b-as-ai-drives-conversion-gains/" target="_blank">https://ppc.land/metas-ad-business-hits-record-58b-as-ai-drives-conversion-gains/</a></p>
+
+    <p>[6] Cambridge Online Trust and Safety Index, University of Cambridge / Science, December 2025.<br>
+    <a href="https://www.cam.ac.uk/stories/price-bot-army-global-index" target="_blank">https://www.cam.ac.uk/stories/price-bot-army-global-index</a></p>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<script>
+Chart.register(window['chartjs-plugin-annotation']);
+
+const interpretations = {
+  0: { s: 'Baseline - system functional',      t: 'Already half-compromised' },
+  1: { s: 'Data signal visibly degrading',     t: 'Severe degradation' },
+  2: { s: 'Critical threshold - collapse begins', t: 'Precision effectively collapsed' },
+  3: { s: 'Severe - approaching random',       t: 'Targeting approaching random' },
+  4: { s: 'Effectively random',                t: 'Signal indistinguishable from noise' },
+  5: { s: 'Noise dominates completely',        t: 'Complete behavioral data failure' },
+};
+
+new Chart(document.getElementById('degradationChart'), {
+  type: 'bar',
+  data: {
+    labels: ['p = 0.05', 'p = 0.10', 'p = 0.15', 'p = 0.20', 'p = 0.25', 'p = 0.30'],
+    datasets: [
+      {
+        label: 'Signal-only s(p)',
+        data: [0.881, 0.731, 0.500, 0.269, 0.119, 0.047],
+        backgroundColor: 'rgba(34,24,60,0.15)',
+        borderColor: 'rgba(34,24,60,0.35)',
+        borderWidth: 1,
+        order: 2,
+      },
+      {
+        label: 'Combined s_total(p)',
+        data: [0.497, 0.297, 0.158, 0.066, 0.021, 0.008],
+        backgroundColor: '#22183c',
+        borderColor: '#22183c',
+        borderWidth: 1,
+        order: 1,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    layout: { padding: { top: 52 } },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: (items) => items[0].label,
+          label: (ctx) => {
+            const i = ctx.dataIndex;
+            if (ctx.datasetIndex === 0) return [` s(p) = ${ctx.raw.toFixed(3)}`, ` ${interpretations[i].s}`];
+            return [` s_total = ${ctx.raw.toFixed(3)}`, ` ${interpretations[i].t}`];
+          }
+        },
+        backgroundColor: '#fff',
+        borderColor: '#000',
+        borderWidth: 1,
+        titleColor: '#22183c',
+        bodyColor: '#4c4e67',
+        padding: 12,
+      },
+      annotation: {
+        clip: false,
+        annotations: {
+          baseline: {
+            type: 'line', xMin: 0, xMax: 0,
+            borderColor: '#2563eb', borderWidth: 2, borderDash: [6, 4],
+            label: { content: 'Current Meta baseline', display: true, position: 'end',
+              backgroundColor: 'transparent', color: '#2563eb', font: { size: 11, weight: '600' }, yAdjust: -46 }
+          },
+          critical: {
+            type: 'line', xMin: 2, xMax: 2,
+            borderColor: '#dc2626', borderWidth: 2, borderDash: [6, 4],
+            label: { content: 'Critical threshold', display: true, position: 'end',
+              backgroundColor: 'transparent', color: '#dc2626', font: { size: 11, weight: '600' }, yAdjust: -46 }
+          },
+          noise: {
+            type: 'line', xMin: 4, xMax: 4,
+            borderColor: '#dc2626', borderWidth: 2, borderDash: [6, 4],
+            label: { content: 'Signal - noise', display: true, position: 'end',
+              backgroundColor: 'transparent', color: '#dc2626', font: { size: 11, weight: '600' }, yAdjust: -46 }
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        border: { color: '#000' },
+        ticks: { color: '#22183c', font: { size: 12 } }
+      },
+      y: {
+        min: 0, max: 1,
+        border: { color: '#000' },
+        grid: { color: 'rgba(0,0,0,0.07)' },
+        ticks: { color: '#22183c', font: { size: 12 }, callback: v => v.toFixed(1) },
+        title: { display: true, text: 'Targeting precision', color: '#22183c', font: { size: 12 } }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
